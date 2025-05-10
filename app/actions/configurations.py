@@ -77,7 +77,7 @@ def get_pull_config(integration):
     )
     if not pull_config:
         raise ConfigurationNotFound(
-            f"Authentication settings for integration {str(integration.id)} "
+            f"Pull observations settings for integration {str(integration.id)} "
             f"are missing. Please fix the integration setup in the portal."
         )
     return PullObservationsConfig.parse_obj(pull_config.data)
