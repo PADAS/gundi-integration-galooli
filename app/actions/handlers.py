@@ -21,8 +21,15 @@ async def action_auth(integration, action_config: AuthenticateConfig):
     url = integration.base_url or GALOOLI_BASE_URL
     pull_config = get_pull_config(integration)
 
+    request = {
+        "username": action_config.username,
+        "password": action_config.password.get_secret_value(),
+        "look_back_window_hours": int(pull_config.look_back_window_hours),
+        "gmt_offset": int(pull_config.gmt_offset)
+    }
+
     try:
-        obs = await client.get_observations(integration, url, action_config, pull_config)
+        obs = await client.get_observations(integration, url, request)
         if not obs:
             logger.error(f"Failed to authenticate with integration {integration.id} using {action_config}")
             return {"valid_credentials": False, "message": "Bad credentials"}
@@ -40,10 +47,17 @@ async def action_pull_observations(integration, action_config: PullObservationsC
     url = integration.base_url or GALOOLI_BASE_URL
     auth_config = get_auth_config(integration)
 
+    request = {
+        "username": auth_config.username,
+        "password": auth_config.password.get_secret_value(),
+        "look_back_window_hours": int(action_config.look_back_window_hours),
+        "gmt_offset": int(action_config.gmt_offset)
+    }
+
     observations_extracted = 0
 
     try:
-        observations = await client.get_observations(integration, url, auth_config, action_config)
+        observations = await client.get_observations(integration, url, request)
         if observations:
             logger.info(f"Extracted {len(observations)} observations for username {auth_config.username}")
 

@@ -18,16 +18,6 @@ class AuthenticateConfig(AuthActionConfiguration, ExecutableActionMixin):
 
 
 class PullObservationsConfig(PullActionConfiguration):
-    schedule_interval_minutes: int = FieldWithUIOptions(
-        1,
-        le=60,
-        ge=1,
-        title="Schedule Interval Minutes",
-        description="Interval in minutes to run the action",
-        ui_options=UIOptions(
-            widget="range",
-        )
-    )
     look_back_window_hours: int = FieldWithUIOptions(
         4,
         le=24,
@@ -49,7 +39,6 @@ class PullObservationsConfig(PullActionConfiguration):
 
     ui_global_options: GlobalUISchemaOptions = GlobalUISchemaOptions(
         order=[
-            "schedule_interval_minutes",
             "look_back_window_hours",
             "gmt_offset",
         ],

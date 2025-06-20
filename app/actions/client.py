@@ -95,19 +95,18 @@ def convert_to_er_observation(r, reports_timezone):
 
 
 @stamina.retry(on=GalooliTooManyRequestsException, wait_initial=4.0, wait_jitter=5.0, wait_max=32.0)
-async def get_observations(integration, url, auth_config, pull_config):
+async def get_observations(integration, url, request):
     async with httpx.AsyncClient(timeout=120) as session:
-        logger.info(f"-- Getting observations for integration ID: {integration.id} Username: {auth_config.username} --")
+        logger.info(f"-- Getting observations for integration ID: {integration.id} Username: {request['username']} --")
 
         current_time = datetime.now(timezone.utc)
-        window_start_time = current_time - timedelta(minutes=pull_config.schedule_interval_minutes) - timedelta(
-            hours=pull_config.look_back_window_hours)
+        window_start_time = current_time - timedelta(hours=request["look_back_window_hours"])
 
         params = {
             'requestedPropertiesStr': REQUESTED_PROPERTIES,
             'lastGMTUpdateTime': datetime.strftime(window_start_time, '%Y-%m-%d %H:%M:%S'),
-            'userName': auth_config.username,
-            'password': auth_config.password.get_secret_value()
+            'userName': request['username'],
+            'password': request['password']
         }
 
         try:
@@ -135,7 +134,7 @@ async def get_observations(integration, url, auth_config, pull_config):
                         f"General error occurred. Result code: {result_code}"
                     )
 
-                offset_minutes = pull_config.gmt_offset * 60
+                offset_minutes = request["gmt_offset"] * 60
                 reports_timezone = pytz.FixedOffset(offset_minutes)
                 dataset = parsed_response['CommonResult']['DataSet']
                 logger.info('%s records received from Galooli', len(dataset))
