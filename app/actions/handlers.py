@@ -1,8 +1,13 @@
 import httpx
 import logging
+import csv
 import app.actions.client as client
+from functional import seq
+import pytz
 
+from io import StringIO
 from app.actions.configurations import AuthenticateConfig, PullObservationsConfig, get_pull_config, get_auth_config
+from app.actions.utils import convert_to_er_observation
 from app.services.activity_logger import activity_logger
 from app.services.gundi import send_observations_to_gundi
 from app.services.state import IntegrationStateManager
@@ -19,20 +24,15 @@ async def action_auth(integration, action_config: AuthenticateConfig):
     logger.info(f"Executing 'auth' action with integration ID {integration.id} and action_config {action_config}...")
 
     url = integration.base_url or GALOOLI_BASE_URL
-    pull_config = get_pull_config(integration)
-
-    request = {
-        "username": action_config.username,
-        "password": action_config.password.get_secret_value(),
-        "look_back_window_hours": int(pull_config.look_back_window_hours),
-        "gmt_offset": int(pull_config.gmt_offset)
-    }
 
     try:
-        obs = await client.get_observations(integration, url, request)
-        if not obs:
-            logger.error(f"Failed to authenticate with integration {integration.id} using {action_config}")
-            return {"valid_credentials": False, "message": "Bad credentials"}
+        await client.get_observations(
+            url,
+            username=action_config.username,
+            password=action_config.password.get_secret_value(),
+            look_back_window_hours=1 # Use small window, since we're just checking credentials
+        )
+        
         return {"valid_credentials": True}
     except (client.GalooliInvalidUserCredentialsException, client.GalooliGeneralErrorException, client.GalooliTooManyRequestsException) as e:
         return {"valid_credentials": False, "message": e.message, "code": e.code}
@@ -47,26 +47,45 @@ async def action_pull_observations(integration, action_config: PullObservationsC
     url = integration.base_url or GALOOLI_BASE_URL
     auth_config = get_auth_config(integration)
 
-    request = {
-        "username": auth_config.username,
-        "password": auth_config.password.get_secret_value(),
-        "look_back_window_hours": int(action_config.look_back_window_hours),
-        "gmt_offset": int(action_config.gmt_offset)
-    }
-
     observations_extracted = 0
 
     try:
-        observations = await client.get_observations(integration, url, request)
-        if observations:
-            logger.info(f"Extracted {len(observations)} observations for username {auth_config.username}")
+        logger.info(f"-- Getting observations for Username: {auth_config.username} --")
+        dataset = await client.get_observations(
+            url,
+            username=auth_config.username,
+            password=auth_config.password.get_secret_value(),
+            look_back_window_hours=int(action_config.look_back_window_hours)
+        )
+        
+        if dataset:
 
-            for i, batch in enumerate(generate_batches(observations, 200)):
-                logger.info(f'Sending observations batch #{i}: {len(batch)} observations. Username: {auth_config.username}')
-                response = await send_observations_to_gundi(observations=batch, integration_id=integration.id)
-                observations_extracted += len(response)
+            # TODO: Figure out why we're converting to CSV first and then posting to Gundi.
+            # Convert dataset to CSV format
+            csv_buffer = StringIO()
+            csv_writer = csv.writer(csv_buffer)
+            csv_writer.writerows(dataset)
+            csv_buffer.seek(0)
+            
+            reports_timezone = pytz.FixedOffset(action_config.gmt_offset * 60)
+            # Apply map and filter operations
+            observations = seq.csv(csv_buffer) \
+                .map(lambda r: convert_to_er_observation(r, reports_timezone)) \
+                .filter(lambda x: x is not None) \
+                .to_list()
+            
+            if observations:
+                logger.info(f"Extracted {len(observations)} observations for username {auth_config.username}")
 
-            return {"observations_extracted": observations_extracted}
+                for i, batch in enumerate(generate_batches(observations, 200)):
+                    logger.info(f'Sending observations batch #{i}: {len(batch)} observations. Username: {auth_config.username}')
+                    response = await send_observations_to_gundi(observations=batch, integration_id=integration.id)
+                    observations_extracted += len(response)
+
+                return {"observations_extracted": observations_extracted}
+            else:
+                logger.warning(f"No valid observations found for Username: {auth_config.username}")
+                return {"observations_extracted": 0}
         else:
             logger.warning(f"No observations found for Username: {auth_config.username}")
             return {"observations_extracted": 0}
