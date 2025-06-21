@@ -7,7 +7,7 @@ from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger(__name__)
 
-REQUESTED_PROPERTIES = 'unit_id,unit_name,a.model,organization_name,real_time_GPS_Time,real_time_status,real_time_Latitude,real_time_Longitude,real_time_Distance,real_time_Speed,ac.hdop,ac.altitude,ac.heading,u.description'
+REQUESTED_PROPERTIES = 'unit_id,unit_name,organization_name,real_time_GPS_Time,real_time_status,real_time_Latitude,real_time_Longitude,real_time_Distance,real_time_Speed'
 
 
 
