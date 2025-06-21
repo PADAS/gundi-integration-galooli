@@ -7,8 +7,8 @@ from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger(__name__)
 
-REQUESTED_PROPERTIES = 'u.unit_id,u.unit_name,a.model,o.name,ac.gps_time,ac.status,ac.latitude,ac.longitude,ac.current_odometer_reading,' \
-                           'ac.speed,ac.hdop,ac.altitude,ac.heading,u.description'
+REQUESTED_PROPERTIES = 'unit_id,unit_name,a.model,organization_name,real_time_GPS_Time,real_time_status,real_time_Latitude,real_time_Longitude,real_time_Distance,real_time_Speed,ac.hdop,ac.altitude,ac.heading,u.description'
+
 
 
 class GalooliGeneralErrorException(Exception):
