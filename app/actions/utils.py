@@ -8,20 +8,21 @@ def convert_to_er_observation(galooli_record, reports_timezone):
 
     try:
         # Unpack the galooli record into its components
-        (sensor_id, subject_name, asset_model, org_name, _, time, status, latitude, longitude,
-         distance, speed, hdop, altitude, heading, description) = galooli_record
+        (sensor_id, subject_name, org_name, time, status, latitude, longitude,
+         distance, speed) = galooli_record
     except ValueError as e:
         logger.exception(f"Failed to unpack Galooli record: {galooli_record}")
         raise e
 
     if latitude and longitude and time and sensor_id:
+        # TODO: Add support for other statuses
         if status == 'Moving':
             localized_gps_time = reports_timezone.localize(dateparser.parse(time))
             obs = {
-                'manufacturer_id': sensor_id,
-                'subject_name': subject_name,
-                'subject_groups': ['Vehicles', ],
-                'subject_subtype': "security_vehicle",
+                'source': sensor_id,
+                'source_name': subject_name,
+                'subject_type': "security_vehicle",
+                'type': 'tracking-device',
                 'recorded_at': localized_gps_time.isoformat(),
                 'location': {
                     'lat': latitude,
@@ -29,15 +30,11 @@ def convert_to_er_observation(galooli_record, reports_timezone):
                 },
                 'additional': {
                     'sensor_id': sensor_id,
-                    'asset_model': asset_model,
                     'org_name': org_name,
                     'status': status,
                     'distance': distance,
                     'speed': speed,
-                    'hdop': hdop,
-                    'altitude': altitude,
-                    'heading': heading,
-                    'description': description,
+                    'subject_groups': ['Vehicles', ]
                 }
             }
             return obs

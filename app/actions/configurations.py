@@ -34,9 +34,6 @@ class PullObservationsConfig(PullActionConfiguration):
         ge=-12,
         title="GMT Offset",
         description="Offset from GMT in hours (e.g., -5 for EST, +1 for CET). This is used to adjust the timestamps of the observations.",
-        ui_options=UIOptions(
-            widget="number",
-        )
     )
 
     ui_global_options: GlobalUISchemaOptions = GlobalUISchemaOptions(

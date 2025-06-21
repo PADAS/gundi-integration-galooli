@@ -165,8 +165,8 @@ class TestActionPullObservations:
         """Test successful pull observations"""
         # Mock dataset with valid observation data
         mock_dataset = [
-            ["sensor1", "Vehicle1", "Model1", "Org1", "extra", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50, 1.2, 100, 90, "Test vehicle"],
-            ["sensor2", "Vehicle2", "Model2", "Org2", "extra", "2023-01-01 11:00:00", "Moving", 40.7589, -73.9851, 200, 60, 1.5, 150, 180, "Test vehicle 2"]
+            ["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50,],
+            ["sensor2", "Vehicle2", "Org2", "2023-01-01 11:00:00", "Moving", 40.7589, -73.9851, 200, 60]
         ]
         
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
@@ -193,7 +193,7 @@ class TestActionPullObservations:
         """Test pull observations with dataset but no valid observations after processing"""
         # Mock dataset with invalid observation data (non-moving status)
         mock_dataset = [
-            ["sensor1", "Vehicle1", "Model1", "Org1", "extra", "2023-01-01 10:00:00", "Stopped", 40.7128, -74.0060, 100, 50, 1.2, 100, 90, "Test vehicle"]
+            ["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Stopped", 40.7128, -74.0060, 100, 50]
         ]
         
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
@@ -207,7 +207,7 @@ class TestActionPullObservations:
     async def test_action_pull_observations_with_custom_base_url(self, mock_integration, mock_action_config, mock_auth_config):
         """Test pull observations with custom base URL"""
         mock_integration.base_url = "https://custom.galooli.com/api"
-        mock_dataset = [["sensor1", "Vehicle1", "Model1", "Org1", "extra", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50, 1.2, 100, 90, "Test vehicle"]]
+        mock_dataset = [["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50]]
         
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
              patch('app.actions.handlers.client.get_observations', return_value=mock_dataset) as mock_get_obs, \
@@ -254,7 +254,7 @@ class TestActionPullObservations:
         """Test pull observations with batch processing"""
         # Create a large dataset to test batching
         mock_dataset = [
-            ["sensor1", "Vehicle1", "Model1", "Org1", "extra", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50, 1.2, 100, 90, "Test vehicle"]
+            ["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50]
         ] * 250  # 250 observations to test batching
         
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
@@ -302,7 +302,7 @@ class TestHandlersIntegration:
         mock_auth_config.username = "test_user"
         mock_auth_config.password.get_secret_value.return_value = "test_password"
         
-        mock_dataset = [["sensor1", "Vehicle1", "Model1", "Org1", "extra", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50, 1.2, 100, 90, "Test vehicle"]]
+        mock_dataset = [["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50]]
         
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
              patch('app.actions.handlers.client.get_observations', return_value=mock_dataset), \

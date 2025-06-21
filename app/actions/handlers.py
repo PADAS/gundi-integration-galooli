@@ -9,6 +9,7 @@ from io import StringIO
 from app.actions.configurations import AuthenticateConfig, PullObservationsConfig, get_pull_config, get_auth_config
 from app.actions.utils import convert_to_er_observation
 from app.services.activity_logger import activity_logger
+from app.services.action_scheduler import crontab_schedule
 from app.services.gundi import send_observations_to_gundi
 from app.services.state import IntegrationStateManager
 from app.services.utils import generate_batches
@@ -39,7 +40,7 @@ async def action_auth(integration, action_config: AuthenticateConfig):
     except httpx.HTTPStatusError as e:
         return {"error": True, "status_code": e.response.status_code}
 
-
+@crontab_schedule("*/5 * * * *")
 @activity_logger()
 async def action_pull_observations(integration, action_config: PullObservationsConfig):
     logger.info(f"Executing 'pull_observations' action with integration ID {integration.id} and action_config {action_config}...")
