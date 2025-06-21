@@ -8,7 +8,7 @@ def convert_to_er_observation(galooli_record, reports_timezone):
 
     try:
         # Unpack the galooli record into its components
-        (sensor_id, subject_name, org_name, _, time, status, latitude, longitude,
+        (sensor_id, subject_name, org_name, time, status, latitude, longitude,
          distance, speed) = galooli_record
     except ValueError as e:
         logger.exception(f"Failed to unpack Galooli record: {galooli_record}")
