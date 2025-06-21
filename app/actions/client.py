@@ -78,7 +78,7 @@ async def get_observations(url, *, username, password, look_back_window_hours):
                 return dataset
             else:
                 logger.info(f"Galooli response: {response.text}")
-                return None
+
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 403:
                 raise GalooliInvalidUserCredentialsException(e, "Unauthorized access", code=403)

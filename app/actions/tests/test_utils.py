@@ -23,10 +23,10 @@ class TestConvertToErObservation:
         result = convert_to_er_observation(galooli_record, reports_timezone)
         
         assert result is not None
-        assert result['manufacturer_id'] == "sensor1"
-        assert result['subject_name'] == "Vehicle1"
-        assert result['subject_groups'] == ['Vehicles']
-        assert result['subject_subtype'] == "security_vehicle"
+        assert result['source'] == "sensor1"
+        assert result['source_name'] == "Vehicle1"
+        assert result['subject_type'] == "security_vehicle"
+        assert result['type'] == "tracking-device"
         assert result['location']['lat'] == 40.7128
         assert result['location']['lon'] == -74.0060
         assert result['additional']['sensor_id'] == "sensor1"

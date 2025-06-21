@@ -15,13 +15,14 @@ def convert_to_er_observation(galooli_record, reports_timezone):
         raise e
 
     if latitude and longitude and time and sensor_id:
+        # TODO: Add support for other statuses
         if status == 'Moving':
             localized_gps_time = reports_timezone.localize(dateparser.parse(time))
             obs = {
-                'manufacturer_id': sensor_id,
-                'subject_name': subject_name,
-                'subject_groups': ['Vehicles', ],
-                'subject_subtype': "security_vehicle",
+                'source': sensor_id,
+                'source_name': subject_name,
+                'subject_type': "security_vehicle",
+                'type': 'tracking-device',
                 'recorded_at': localized_gps_time.isoformat(),
                 'location': {
                     'lat': latitude,
@@ -29,15 +30,11 @@ def convert_to_er_observation(galooli_record, reports_timezone):
                 },
                 'additional': {
                     'sensor_id': sensor_id,
-                    # 'asset_model': asset_model,
                     'org_name': org_name,
                     'status': status,
                     'distance': distance,
-                    'speed': speed
-                    # 'hdop': hdop,
-                    # 'altitude': altitude,
-                    # 'heading': heading,
-                    # 'description': description,
+                    'speed': speed,
+                    'subject_groups': ['Vehicles', ]
                 }
             }
             return obs
