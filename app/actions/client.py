@@ -36,11 +36,14 @@ class GalooliTooManyRequestsException(Exception):
 
 
 @stamina.retry(on=GalooliTooManyRequestsException, wait_initial=4.0, wait_jitter=5.0, wait_max=32.0)
-async def get_observations(url, *, username, password, start):
+async def get_observations(url, *, username, password, look_back_window_hours):
     async with httpx.AsyncClient(timeout=120) as session:
+        current_time = datetime.now(timezone.utc)
+        window_start_time = current_time - timedelta(hours=look_back_window_hours)
+
         params = {
             'requestedPropertiesStr': REQUESTED_PROPERTIES,
-            'lastGMTUpdateTime': start,
+            'lastGMTUpdateTime': datetime.strftime(window_start_time, '%Y-%m-%d %H:%M:%S'),
             'userName': username,
             'password': password
         }
@@ -70,7 +73,9 @@ async def get_observations(url, *, username, password, start):
                         f"General error occurred. Result code: {result_code}"
                     )
 
-                return parsed_response
+                dataset = parsed_response['CommonResult']['DataSet']
+                logger.info('%s records received from Galooli', len(dataset))
+                return dataset
             else:
                 logger.info(f"Galooli response: {response.text}")
 
