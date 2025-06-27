@@ -99,21 +99,21 @@ async def action_pull_observations(integration, action_config: PullObservationsC
                     response = await send_observations_to_gundi(observations=batch, integration_id=integration.id)
                     observations_extracted += len(response)
 
-                # Save latest execution time to state
-                latest_time = get_observations_response["MaxGmtUpdateTime"]
-                state = {"last_updated_time": latest_time}
-
-                await state_manager.set_state(
-                    integration_id=integration.id,
-                    action_id="pull_observations",
-                    state=state
-                )
-                logger.info(f"State updated for integration {integration.id} with last_updated_time: {latest_time}")
-
-                return {"observations_extracted": observations_extracted}
             else:
                 logger.warning(f"No valid observations found for Username: {auth_config.username}")
-                return {"observations_extracted": 0}
+
+            # Save latest execution time to state
+            latest_time = get_observations_response["MaxGmtUpdateTime"]
+            state = {"last_updated_time": latest_time}
+
+            await state_manager.set_state(
+                integration_id=integration.id,
+                action_id="pull_observations",
+                state=state
+            )
+            logger.info(f"State updated for integration {integration.id} with last_updated_time: {latest_time}")
+
+            return {"observations_extracted": observations_extracted}
         else:
             logger.warning(f"No observations found for Username: {auth_config.username}")
             return {"observations_extracted": 0}
