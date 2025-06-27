@@ -137,6 +137,50 @@ class TestActionPullObservations:
     """Test cases for action_pull_observations function"""
 
     @pytest.fixture
+    def mock_dataset_response(self):
+        """Mock dataset response"""
+        return {
+            "MaxGmtUpdateTime": "2025-06-27 01:56:02",
+            "CommonResult": {
+                "ResultDescription": "",
+                "ResultCode": 0,
+                "RejectReason": "",
+                "DataSet": [
+                    ["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50,],
+                    ["sensor2", "Vehicle2", "Org2", "2023-01-01 11:00:00", "Moving", 40.7589, -73.9851, 200, 60]
+                ]
+            }
+        }
+
+    @pytest.fixture
+    def mock_empty_dataset_response(self):
+        """Mock dataset response"""
+        return {
+            "MaxGmtUpdateTime": "2025-06-27 01:56:02",
+            "CommonResult": {
+                "ResultDescription": "",
+                "ResultCode": 0,
+                "RejectReason": "",
+                "DataSet": []
+            }
+        }
+
+    @pytest.fixture
+    def mock_dataset_bad_observation_response(self):
+        """Mock dataset response"""
+        return {
+            "MaxGmtUpdateTime": "2025-06-27 01:56:02",
+            "CommonResult": {
+                "ResultDescription": "",
+                "ResultCode": 0,
+                "RejectReason": "",
+                "DataSet": [
+                    ["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Stopped", 40.7128, -74.0060, 100, 50]
+                ]
+            }
+        }
+
+    @pytest.fixture
     def mock_integration(self):
         """Mock integration object"""
         integration = MagicMock()
@@ -161,16 +205,10 @@ class TestActionPullObservations:
         return auth_config
     
     @pytest.mark.asyncio
-    async def test_action_pull_observations_success(self, mock_integration, mock_action_config, mock_auth_config):
+    async def test_action_pull_observations_success(self, mock_integration, mock_action_config, mock_auth_config, mock_dataset_response):
         """Test successful pull observations"""
-        # Mock dataset with valid observation data
-        mock_dataset = [
-            ["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50,],
-            ["sensor2", "Vehicle2", "Org2", "2023-01-01 11:00:00", "Moving", 40.7589, -73.9851, 200, 60]
-        ]
-        
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
-             patch('app.actions.handlers.client.get_observations', return_value=mock_dataset), \
+             patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_response), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs1", "obs2"]) as mock_send:
             
             result = await action_pull_observations(mock_integration, mock_action_config)
@@ -179,54 +217,54 @@ class TestActionPullObservations:
             mock_send.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_action_pull_observations_no_dataset(self, mock_integration, mock_action_config, mock_auth_config):
+    async def test_action_pull_observations_no_dataset(self, mock_integration, mock_action_config, mock_auth_config, mock_empty_dataset_response):
         """Test pull observations with no dataset returned"""
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
-             patch('app.actions.handlers.client.get_observations', return_value=None):
+             patch('app.actions.handlers.client.get_observations', return_value=mock_empty_dataset_response), \
+             patch('app.actions.handlers.state_manager.get_state', return_value={}):
             
             result = await action_pull_observations(mock_integration, mock_action_config)
             
             assert result == {"observations_extracted": 0}
 
     @pytest.mark.asyncio
-    async def test_action_pull_observations_no_valid_observations(self, mock_integration, mock_action_config, mock_auth_config):
+    async def test_action_pull_observations_no_valid_observations(self, mock_integration, mock_action_config, mock_auth_config, mock_dataset_bad_observation_response):
         """Test pull observations with dataset but no valid observations after processing"""
-        # Mock dataset with invalid observation data (non-moving status)
-        mock_dataset = [
-            ["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Stopped", 40.7128, -74.0060, 100, 50]
-        ]
-        
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
-             patch('app.actions.handlers.client.get_observations', return_value=mock_dataset):
+             patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_bad_observation_response), \
+             patch('app.actions.handlers.state_manager.get_state', return_value={}):
             
             result = await action_pull_observations(mock_integration, mock_action_config)
             
             assert result == {"observations_extracted": 0}
 
     @pytest.mark.asyncio
-    async def test_action_pull_observations_with_custom_base_url(self, mock_integration, mock_action_config, mock_auth_config):
+    async def test_action_pull_observations_with_custom_base_url(self, mock_integration, mock_action_config, mock_auth_config, mock_dataset_response):
         """Test pull observations with custom base URL"""
         mock_integration.base_url = "https://custom.galooli.com/api"
-        mock_dataset = [["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50]]
-        
+
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
-             patch('app.actions.handlers.client.get_observations', return_value=mock_dataset) as mock_get_obs, \
-             patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs1"]):
+             patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_response) as mock_get_obs, \
+             patch('app.actions.handlers.state_manager.get_state', return_value={}), \
+             patch('app.actions.handlers.state_manager.set_state', return_value={}), \
+             patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs1", "obs2"]) as mock_send:
             
             result = await action_pull_observations(mock_integration, mock_action_config)
             
-            assert result == {"observations_extracted": 1}
+            assert result == {"observations_extracted": 2}
             mock_get_obs.assert_called_once_with(
                 "https://custom.galooli.com/api",
                 username="test_user",
                 password="test_password",
-                look_back_window_hours=4
+                start=mock_get_obs.call_args[1]["start"]
             )
+            mock_send.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_action_pull_observations_client_exception(self, mock_integration, mock_action_config, mock_auth_config):
         """Test pull observations with client exception"""
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
+             patch('app.actions.handlers.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.client.get_observations') as mock_get_obs:
             mock_get_obs.side_effect = GalooliInvalidUserCredentialsException(
                 Exception(), "Invalid credentials", 1000
@@ -239,6 +277,7 @@ class TestActionPullObservations:
     async def test_action_pull_observations_http_error(self, mock_integration, mock_action_config, mock_auth_config):
         """Test pull observations with HTTP error"""
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
+             patch('app.actions.handlers.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.client.get_observations') as mock_get_obs:
             mock_response = MagicMock()
             mock_response.status_code = 500
@@ -253,12 +292,22 @@ class TestActionPullObservations:
     async def test_action_pull_observations_batch_processing(self, mock_integration, mock_action_config, mock_auth_config):
         """Test pull observations with batch processing"""
         # Create a large dataset to test batching
-        mock_dataset = [
-            ["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50]
-        ] * 250  # 250 observations to test batching
+        mock_dataset_response = {
+            "MaxGmtUpdateTime": "2025-06-27 01:56:02",
+            "CommonResult": {
+                "ResultDescription": "",
+                "ResultCode": 0,
+                "RejectReason": "",
+                "DataSet": [
+                    ["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50],
+                ] * 250 # 250 observations to ensure batching
+            }
+        }
         
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
-             patch('app.actions.handlers.client.get_observations', return_value=mock_dataset), \
+             patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_response), \
+             patch('app.actions.handlers.state_manager.get_state', return_value={}), \
+             patch('app.actions.handlers.state_manager.set_state', return_value={}), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs"] * 200) as mock_send:
             
             result = await action_pull_observations(mock_integration, mock_action_config)
@@ -290,6 +339,20 @@ class TestHandlersIntegration:
     @pytest.mark.asyncio
     async def test_action_pull_observations_logging(self, caplog):
         """Test that action_pull_observations logs appropriately"""
+
+        mock_dataset_response = {
+            "MaxGmtUpdateTime": "2025-06-27 01:56:02",
+            "CommonResult": {
+                "ResultDescription": "",
+                "ResultCode": 0,
+                "RejectReason": "",
+                "DataSet": [
+                    ["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50, ],
+                    ["sensor2", "Vehicle2", "Org2", "2023-01-01 11:00:00", "Moving", 40.7589, -73.9851, 200, 60]
+                ]
+            }
+        }
+
         mock_integration = MagicMock()
         mock_integration.id = "test-id"
         mock_integration.base_url = None
@@ -301,11 +364,11 @@ class TestHandlersIntegration:
         mock_auth_config = MagicMock()
         mock_auth_config.username = "test_user"
         mock_auth_config.password.get_secret_value.return_value = "test_password"
-        
-        mock_dataset = [["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 100, 50]]
-        
+
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
-             patch('app.actions.handlers.client.get_observations', return_value=mock_dataset), \
+             patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_response), \
+             patch('app.actions.handlers.state_manager.get_state', return_value={}), \
+             patch('app.actions.handlers.state_manager.set_state', return_value={}), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs1"]):
             
             await action_pull_observations(mock_integration, mock_action_config)
