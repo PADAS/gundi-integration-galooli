@@ -72,7 +72,12 @@ async def action_pull_observations(integration, action_config: PullObservationsC
             start=start
         )
         
-        if get_observations_response:
+        if get_observations_response := await client.get_observations(
+            url,
+            username=auth_config.username,
+            password=auth_config.password.get_secret_value(),
+            start=start
+        )
 
             dataset = get_observations_response['CommonResult']['DataSet']
             logger.info('%s records received from Galooli', len(dataset))
