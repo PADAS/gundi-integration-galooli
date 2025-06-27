@@ -36,11 +36,11 @@ class GalooliTooManyRequestsException(Exception):
 
 
 @stamina.retry(on=GalooliTooManyRequestsException, wait_initial=4.0, wait_jitter=5.0, wait_max=32.0)
-async def get_observations(url, *, username, password, start):
+async def get_observations(url, *, username: str, password: str, start: datetime):
     async with httpx.AsyncClient(timeout=120) as session:
         params = {
             'requestedPropertiesStr': REQUESTED_PROPERTIES,
-            'lastGMTUpdateTime': start,
+            'lastGMTUpdateTime': start.strftime("%Y-%m-%d %H:%M:%S"),
             'userName': username,
             'password': password
         }

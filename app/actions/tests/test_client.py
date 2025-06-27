@@ -21,7 +21,7 @@ class TestGetObservations:
             'url': "https://test.galooli.com/api",
             'username': "test_user",
             'password': "test_password",
-            'start': datetime(2024, 6, 27, 12, 0, 0, tzinfo=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            'start': datetime(2024, 6, 27, 12, 0, 0, tzinfo=timezone.utc)
         }
 
     @pytest.fixture

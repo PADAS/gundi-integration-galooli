@@ -2,6 +2,7 @@ import httpx
 import logging
 import csv
 import app.actions.client as client
+from dateparser import parse as dp
 from functional import seq
 from datetime import datetime, timedelta, timezone
 import pytz
@@ -27,12 +28,15 @@ async def action_auth(integration, action_config: AuthenticateConfig):
 
     url = integration.base_url or GALOOLI_BASE_URL
 
+    now = datetime.now(timezone.utc)
+    start = now - timedelta(hours=1) # Use small window, since we're just checking credentials
+
     try:
         await client.get_observations(
             url,
             username=action_config.username,
             password=action_config.password.get_secret_value(),
-            look_back_window_hours=1 # Use small window, since we're just checking credentials
+            start=start
         )
         
         return {"valid_credentials": True}
@@ -59,25 +63,19 @@ async def action_pull_observations(integration, action_config: PullObservationsC
     if not last_updated_time:
         now = datetime.now(timezone.utc)
         logger.info(f"Setting initial lookback hours to {action_config.look_back_window_hours} hrs from now")
-        start = (now - timedelta(hours=action_config.look_back_window_hours)).strftime("%Y-%m-%d %H:%M:%S")
+        start = now - timedelta(hours=action_config.look_back_window_hours)
     else:
-        start = last_updated_time.get("last_updated_time")
+        start = dp(last_updated_time.get("last_updated_time")).replace(tzinfo=timezone.utc)
 
     try:
         logger.info(f"-- Getting observations for Username: {auth_config.username} from {start} --")
-        get_observations_response = await client.get_observations(
-            url,
-            username=auth_config.username,
-            password=auth_config.password.get_secret_value(),
-            start=start
-        )
         
         if get_observations_response := await client.get_observations(
             url,
             username=auth_config.username,
             password=auth_config.password.get_secret_value(),
             start=start
-        )
+        ):
 
             dataset = get_observations_response['CommonResult']['DataSet']
             logger.info('%s records received from Galooli', len(dataset))
