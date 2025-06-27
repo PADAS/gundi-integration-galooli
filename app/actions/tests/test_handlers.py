@@ -223,6 +223,7 @@ class TestActionPullObservations:
         """Test pull observations with no dataset returned"""
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
              patch('app.actions.handlers.client.get_observations', return_value=mock_empty_dataset_response), \
+             patch('app.actions.handlers.state_manager.set_state', return_value={}), \
              patch('app.actions.handlers.state_manager.get_state', return_value={}):
             
             result = await action_pull_observations(mock_integration, mock_action_config)
@@ -234,6 +235,7 @@ class TestActionPullObservations:
         """Test pull observations with dataset but no valid observations after processing"""
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
              patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_bad_observation_response), \
+             patch('app.actions.handlers.state_manager.set_state', return_value={}), \
              patch('app.actions.handlers.state_manager.get_state', return_value={}):
             
             result = await action_pull_observations(mock_integration, mock_action_config)
