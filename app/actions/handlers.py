@@ -3,10 +3,11 @@ import logging
 import csv
 import app.actions.client as client
 from functional import seq
+from datetime import datetime, timedelta, timezone
 import pytz
 
 from io import StringIO
-from app.actions.configurations import AuthenticateConfig, PullObservationsConfig, get_pull_config, get_auth_config
+from app.actions.configurations import AuthenticateConfig, PullObservationsConfig, get_auth_config
 from app.actions.utils import convert_to_er_observation
 from app.services.activity_logger import activity_logger
 from app.services.action_scheduler import crontab_schedule
@@ -50,16 +51,31 @@ async def action_pull_observations(integration, action_config: PullObservationsC
 
     observations_extracted = 0
 
+    last_updated_time = await state_manager.get_state(
+        integration_id=integration.id,
+        action_id="pull_observations"
+    )
+
+    if not last_updated_time:
+        now = datetime.now(timezone.utc)
+        logger.info(f"Setting initial lookback hours to {action_config.look_back_window_hours} hrs from now")
+        start = (now - timedelta(hours=action_config.look_back_window_hours)).strftime("%Y-%m-%d %H:%M:%S")
+    else:
+        start = last_updated_time.get("last_updated_time")
+
     try:
-        logger.info(f"-- Getting observations for Username: {auth_config.username} --")
-        dataset = await client.get_observations(
+        logger.info(f"-- Getting observations for Username: {auth_config.username} from {start} --")
+        get_observations_response = await client.get_observations(
             url,
             username=auth_config.username,
             password=auth_config.password.get_secret_value(),
-            look_back_window_hours=int(action_config.look_back_window_hours)
+            start=start
         )
         
-        if dataset:
+        if get_observations_response:
+
+            dataset = get_observations_response['CommonResult']['DataSet']
+            logger.info('%s records received from Galooli', len(dataset))
 
             # TODO: Figure out why we're converting to CSV first and then posting to Gundi.
             # Convert dataset to CSV format
@@ -82,6 +98,17 @@ async def action_pull_observations(integration, action_config: PullObservationsC
                     logger.info(f'Sending observations batch #{i}: {len(batch)} observations. Username: {auth_config.username}')
                     response = await send_observations_to_gundi(observations=batch, integration_id=integration.id)
                     observations_extracted += len(response)
+
+                # Save latest execution time to state
+                latest_time = get_observations_response["MaxGmtUpdateTime"]
+                state = {"last_updated_time": latest_time}
+
+                await state_manager.set_state(
+                    integration_id=integration.id,
+                    action_id="pull_observations",
+                    state=state
+                )
+                logger.info(f"State updated for integration {integration.id} with last_updated_time: {latest_time}")
 
                 return {"observations_extracted": observations_extracted}
             else:
