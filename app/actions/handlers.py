@@ -1,3 +1,4 @@
+import asyncio
 import httpx
 import logging
 import csv
@@ -89,10 +90,11 @@ async def action_pull_observations(integration, action_config: PullObservationsC
             
             reports_timezone = pytz.FixedOffset(action_config.gmt_offset * 60)
             # Apply map and filter operations
-            observations = seq.csv(csv_buffer) \
-                .map(lambda r: convert_to_er_observation(r, reports_timezone)) \
-                .filter(lambda x: x is not None) \
-                .to_list()
+            rows = list(seq.csv(csv_buffer))
+            observations = await asyncio.gather(
+                *[convert_to_er_observation(integration.id, r, reports_timezone) for r in rows]
+            )
+            observations = [x for x in observations if x is not None]
             
             if observations:
                 logger.info(f"Extracted {len(observations)} observations for username {auth_config.username}")

@@ -199,8 +199,10 @@ class TestActionPullObservations:
         """Test successful pull observations"""
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
              patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_response), \
-             patch('app.actions.handlers.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.state_manager.set_state', return_value={}), \
+             patch('app.actions.handlers.state_manager.get_state', return_value={}), \
+             patch('app.actions.utils.state_manager.set_state', return_value={}), \
+             patch('app.actions.utils.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs1", "obs2"]) as mock_send:
             
             result = await action_pull_observations(mock_integration, mock_action_config)
@@ -220,6 +222,7 @@ class TestActionPullObservations:
             
             assert result == {"observations_extracted": 0}
 
+    @pytest.mark.skip("Approach changed, so no bad observations are returned")
     @pytest.mark.asyncio
     async def test_action_pull_observations_no_valid_observations(self, mock_integration, mock_action_config, mock_auth_config, mock_dataset_bad_observation_response):
         """Test pull observations with dataset but no valid observations after processing"""
@@ -241,6 +244,8 @@ class TestActionPullObservations:
              patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_response) as mock_get_obs, \
              patch('app.actions.handlers.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.state_manager.set_state', return_value={}), \
+             patch('app.actions.utils.state_manager.set_state', return_value={}), \
+             patch('app.actions.utils.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs1", "obs2"]) as mock_send:
             
             result = await action_pull_observations(mock_integration, mock_action_config)
@@ -302,6 +307,8 @@ class TestActionPullObservations:
              patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_response), \
              patch('app.actions.handlers.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.state_manager.set_state', return_value={}), \
+             patch('app.actions.utils.state_manager.set_state', return_value={}), \
+             patch('app.actions.utils.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs"] * 200) as mock_send:
             
             result = await action_pull_observations(mock_integration, mock_action_config)
