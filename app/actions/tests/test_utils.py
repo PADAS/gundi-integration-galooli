@@ -1,6 +1,5 @@
 import pytest
 import pytz
-from unittest.mock import patch
 from app.actions.utils import convert_to_er_observation
 
 
@@ -19,9 +18,8 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 
             100, 50
         ]
-        with patch('app.actions.utils.state_manager.set_state', return_value={}), \
-             patch('app.actions.utils.state_manager.get_state', return_value={}):
-                result = convert_to_er_observation(galooli_record, reports_timezone)
+
+        result = convert_to_er_observation(galooli_record, reports_timezone)
 
         assert result is not None
         assert result['source'] == "sensor1"
@@ -36,16 +34,16 @@ class TestConvertToErObservation:
         assert result['additional']['distance'] == 100
         assert result['additional']['speed'] == 50
 
-    def test_convert_to_er_observation_stopped_vehicle(self, reports_timezone):
+    def test_convert_to_er_observation_stopped_vehicle_returns_valid_observation(self, reports_timezone):
         """Test conversion of stopped vehicle (should return None)"""
         galooli_record = [
             "sensor1", "Vehicle1", "Org1", 
             "2023-01-01 10:00:00", "Stopped", 40.7128, -74.0060, 
             100, 0
         ]
-        with patch('app.actions.utils.state_manager.set_state', return_value={}), \
-             patch('app.actions.utils.state_manager.get_state', return_value={}):
-                result = convert_to_er_observation(galooli_record, reports_timezone)
+
+        result = convert_to_er_observation(galooli_record, reports_timezone)
+
         assert result is not None
 
     def test_convert_to_er_observation_missing_coordinates(self, reports_timezone):
@@ -113,9 +111,8 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Idle", 40.7128, -74.0060, 
             100, 0
         ]
-        with patch('app.actions.utils.state_manager.set_state', return_value={}), \
-             patch('app.actions.utils.state_manager.get_state', return_value={}):
-                result_idle = convert_to_er_observation(galooli_record_idle, reports_timezone)
+
+        result_idle = convert_to_er_observation(galooli_record_idle, reports_timezone)
 
         assert result_idle is not None
         # Test with "Parked" status
@@ -124,9 +121,9 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Parked", 40.7128, -74.0060, 
             100, 0
         ]
-        with patch('app.actions.utils.state_manager.set_state', return_value={}), \
-             patch('app.actions.utils.state_manager.get_state', return_value={}):
-                result_parked = convert_to_er_observation(galooli_record_parked, reports_timezone)
+
+        result_parked = convert_to_er_observation(galooli_record_parked, reports_timezone)
+
         assert result_parked is not None
 
     def test_convert_to_er_observation_timezone_handling(self):
@@ -138,9 +135,9 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 
             100, 50
         ]
-        with patch('app.actions.utils.state_manager.set_state', return_value={}), \
-             patch('app.actions.utils.state_manager.get_state', return_value={}):
-                result = convert_to_er_observation(galooli_record, utc_timezone)
+
+        result = convert_to_er_observation(galooli_record, utc_timezone)
+
         assert result is not None
         assert "T10:00:00+00:00" in result['recorded_at']
 
@@ -151,9 +148,9 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 
             123.45, 67.89
         ]
-        with patch('app.actions.utils.state_manager.set_state', return_value={}), \
-             patch('app.actions.utils.state_manager.get_state', return_value={}):
-                result = convert_to_er_observation(galooli_record, reports_timezone)
+
+        result = convert_to_er_observation(galooli_record, reports_timezone)
+
         assert result is not None
         assert result['additional']['distance'] == 123.45
         assert result['additional']['speed'] == 67.89

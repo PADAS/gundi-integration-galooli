@@ -47,7 +47,7 @@ async def filter_observations_by_device_status(integration_id, observations):
     """
     Filters observations based on the device status.
     """
-    async def save_state_and_append_observation():
+    async def save_state_and_append_observation(obs, sensor_id, status):
         state = {"status": status}
         await state_manager.set_state(
             integration_id=integration_id,
