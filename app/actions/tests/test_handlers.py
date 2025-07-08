@@ -370,6 +370,8 @@ class TestHandlersIntegration:
              patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_response), \
              patch('app.actions.handlers.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.state_manager.set_state', return_value={}), \
+             patch('app.actions.utils.state_manager.set_state', return_value={}), \
+             patch('app.actions.utils.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs1"]):
             
             await action_pull_observations(mock_integration, mock_action_config)
