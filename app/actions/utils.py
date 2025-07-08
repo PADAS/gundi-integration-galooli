@@ -79,9 +79,9 @@ async def filter_observations_by_device_status(integration_id, observations):
             if device_state.get('status') == status:
                 logger.info(f'Ignoring observation for {sensor_id} {subject_name} recorded at {time} status: {status} (status has not changed)')
             else:
-                await save_state_and_append_observation()
+                await save_state_and_append_observation(obs, sensor_id, status)
         else:
             # No device_state (new sensor), so we create a new observation
-            await save_state_and_append_observation()
+            await save_state_and_append_observation(obs, sensor_id, status)
 
     return filtered_observations
