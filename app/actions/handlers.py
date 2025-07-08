@@ -1,4 +1,3 @@
-import asyncio
 import httpx
 import logging
 import csv
@@ -10,7 +9,7 @@ import pytz
 
 from io import StringIO
 from app.actions.configurations import AuthenticateConfig, PullObservationsConfig, get_auth_config
-from app.actions.utils import convert_to_er_observation
+from app.actions.utils import convert_to_er_observation, filter_observations_by_device_status
 from app.services.activity_logger import activity_logger
 from app.services.action_scheduler import crontab_schedule
 from app.services.gundi import send_observations_to_gundi
@@ -90,16 +89,17 @@ async def action_pull_observations(integration, action_config: PullObservationsC
             
             reports_timezone = pytz.FixedOffset(action_config.gmt_offset * 60)
             # Apply map and filter operations
-            rows = list(seq.csv(csv_buffer))
-            observations = await asyncio.gather(
-                *[convert_to_er_observation(integration.id, r, reports_timezone) for r in rows]
-            )
-            observations = [x for x in observations if x is not None]
+            observations = seq.csv(csv_buffer) \
+                .map(lambda r: convert_to_er_observation(r, reports_timezone)) \
+                .filter(lambda x: x is not None) \
+                .to_list()
             
             if observations:
                 logger.info(f"Extracted {len(observations)} observations for username {auth_config.username}")
 
-                for i, batch in enumerate(generate_batches(observations, 200)):
+                filtered_observations = await filter_observations_by_device_status(str(integration.id), observations)
+
+                for i, batch in enumerate(generate_batches(filtered_observations, 200)):
                     logger.info(f'Sending observations batch #{i}: {len(batch)} observations. Username: {auth_config.username}')
                     response = await send_observations_to_gundi(observations=batch, integration_id=integration.id)
                     observations_extracted += len(response)

@@ -22,7 +22,7 @@ class TestConvertToErObservation:
         ]
         with patch('app.actions.utils.state_manager.set_state', return_value={}), \
              patch('app.actions.utils.state_manager.get_state', return_value={}):
-                result = await convert_to_er_observation("integration_id", galooli_record, reports_timezone)
+                result = convert_to_er_observation(galooli_record, reports_timezone)
 
         assert result is not None
         assert result['source'] == "sensor1"
@@ -47,7 +47,7 @@ class TestConvertToErObservation:
         ]
         with patch('app.actions.utils.state_manager.set_state', return_value={}), \
              patch('app.actions.utils.state_manager.get_state', return_value={}):
-                result = await convert_to_er_observation("integration_id", galooli_record, reports_timezone)
+                result = convert_to_er_observation(galooli_record, reports_timezone)
         assert result is not None
 
     @pytest.mark.asyncio
@@ -58,7 +58,7 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Moving", None, None, 
             100, 50
         ]
-        result = await convert_to_er_observation("integration_id", galooli_record, reports_timezone)
+        result = convert_to_er_observation(galooli_record, reports_timezone)
         assert result is None
 
     @pytest.mark.asyncio
@@ -69,7 +69,7 @@ class TestConvertToErObservation:
             None, "Moving", 40.7128, -74.0060, 
             100, 50
         ]
-        result = await convert_to_er_observation("integration_id", galooli_record, reports_timezone)
+        result = convert_to_er_observation(galooli_record, reports_timezone)
         assert result is None
 
     @pytest.mark.asyncio
@@ -80,7 +80,7 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 
             100, 50
         ]
-        result = await convert_to_er_observation("integration_id", galooli_record, reports_timezone)
+        result = convert_to_er_observation(galooli_record, reports_timezone)
         assert result is None
 
     @pytest.mark.asyncio
@@ -89,7 +89,7 @@ class TestConvertToErObservation:
         galooli_record = ["sensor1", "Vehicle1", "Model1"]  # Too short
         
         with pytest.raises(ValueError):
-            await convert_to_er_observation("integration_id", galooli_record, reports_timezone)
+            convert_to_er_observation(galooli_record, reports_timezone)
 
     @pytest.mark.asyncio
     async def test_convert_to_er_observation_zero_coordinates(self, reports_timezone):
@@ -99,7 +99,7 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Moving", 0, 0, 
             100, 50
         ]
-        result = await convert_to_er_observation("integration_id", galooli_record, reports_timezone)
+        result = convert_to_er_observation(galooli_record, reports_timezone)
         assert result is None
 
     @pytest.mark.asyncio
@@ -110,7 +110,7 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Moving", "", "", 
             100, 50
         ]
-        result = await convert_to_er_observation("integration_id", galooli_record, reports_timezone)
+        result = convert_to_er_observation(galooli_record, reports_timezone)
         assert result is None
 
     @pytest.mark.asyncio
@@ -124,7 +124,7 @@ class TestConvertToErObservation:
         ]
         with patch('app.actions.utils.state_manager.set_state', return_value={}), \
              patch('app.actions.utils.state_manager.get_state', return_value={}):
-                result_idle = await convert_to_er_observation("integration_id", galooli_record_idle, reports_timezone)
+                result_idle = convert_to_er_observation(galooli_record_idle, reports_timezone)
 
         assert result_idle is not None
         # Test with "Parked" status
@@ -134,8 +134,8 @@ class TestConvertToErObservation:
             100, 0
         ]
         with patch('app.actions.utils.state_manager.set_state', return_value={}), \
-                patch('app.actions.utils.state_manager.get_state', return_value={}):
-                    result_parked = await convert_to_er_observation("integration_id", galooli_record_parked, reports_timezone)
+             patch('app.actions.utils.state_manager.get_state', return_value={}):
+                result_parked = convert_to_er_observation(galooli_record_parked, reports_timezone)
         assert result_parked is not None
 
     @pytest.mark.asyncio
@@ -150,7 +150,7 @@ class TestConvertToErObservation:
         ]
         with patch('app.actions.utils.state_manager.set_state', return_value={}), \
              patch('app.actions.utils.state_manager.get_state', return_value={}):
-                result = await convert_to_er_observation("integration_id", galooli_record, utc_timezone)
+                result = convert_to_er_observation(galooli_record, utc_timezone)
         assert result is not None
         assert "T10:00:00+00:00" in result['recorded_at']
 
@@ -164,7 +164,7 @@ class TestConvertToErObservation:
         ]
         with patch('app.actions.utils.state_manager.set_state', return_value={}), \
              patch('app.actions.utils.state_manager.get_state', return_value={}):
-                result = await convert_to_er_observation("integration_id", galooli_record, reports_timezone)
+                result = convert_to_er_observation(galooli_record, reports_timezone)
         assert result is not None
         assert result['additional']['distance'] == 123.45
         assert result['additional']['speed'] == 67.89
