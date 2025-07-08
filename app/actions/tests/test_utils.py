@@ -12,8 +12,7 @@ class TestConvertToErObservation:
         """Mock timezone for testing"""
         return pytz.FixedOffset(-300)  # EST timezone
 
-    @pytest.mark.asyncio
-    async def test_convert_to_er_observation_success(self, reports_timezone):
+    def test_convert_to_er_observation_success(self, reports_timezone):
         """Test successful conversion of Galooli record to ER observation"""
         galooli_record = [
             "sensor1", "Vehicle1", "Org1",  
@@ -37,8 +36,7 @@ class TestConvertToErObservation:
         assert result['additional']['distance'] == 100
         assert result['additional']['speed'] == 50
 
-    @pytest.mark.asyncio
-    async def test_convert_to_er_observation_stopped_vehicle(self, reports_timezone):
+    def test_convert_to_er_observation_stopped_vehicle(self, reports_timezone):
         """Test conversion of stopped vehicle (should return None)"""
         galooli_record = [
             "sensor1", "Vehicle1", "Org1", 
@@ -50,8 +48,7 @@ class TestConvertToErObservation:
                 result = convert_to_er_observation(galooli_record, reports_timezone)
         assert result is not None
 
-    @pytest.mark.asyncio
-    async def test_convert_to_er_observation_missing_coordinates(self, reports_timezone):
+    def test_convert_to_er_observation_missing_coordinates(self, reports_timezone):
         """Test conversion with missing coordinates (should return None)"""
         galooli_record = [
             "sensor1", "Vehicle1", "Org1", 
@@ -61,8 +58,7 @@ class TestConvertToErObservation:
         result = convert_to_er_observation(galooli_record, reports_timezone)
         assert result is None
 
-    @pytest.mark.asyncio
-    async def test_convert_to_er_observation_missing_time(self, reports_timezone):
+    def test_convert_to_er_observation_missing_time(self, reports_timezone):
         """Test conversion with missing time (should return None)"""
         galooli_record = [
             "sensor1", "Vehicle1", "Org1", 
@@ -72,8 +68,7 @@ class TestConvertToErObservation:
         result = convert_to_er_observation(galooli_record, reports_timezone)
         assert result is None
 
-    @pytest.mark.asyncio
-    async def test_convert_to_er_observation_missing_sensor_id(self, reports_timezone):
+    def test_convert_to_er_observation_missing_sensor_id(self, reports_timezone):
         """Test conversion with missing sensor ID (should return None)"""
         galooli_record = [
             None, "Vehicle1", "Org1", 
@@ -83,16 +78,14 @@ class TestConvertToErObservation:
         result = convert_to_er_observation(galooli_record, reports_timezone)
         assert result is None
 
-    @pytest.mark.asyncio
-    async def test_convert_to_er_observation_invalid_record_length(self, reports_timezone):
+    def test_convert_to_er_observation_invalid_record_length(self, reports_timezone):
         """Test conversion with invalid record length (should raise ValueError)"""
         galooli_record = ["sensor1", "Vehicle1", "Model1"]  # Too short
         
         with pytest.raises(ValueError):
             convert_to_er_observation(galooli_record, reports_timezone)
 
-    @pytest.mark.asyncio
-    async def test_convert_to_er_observation_zero_coordinates(self, reports_timezone):
+    def test_convert_to_er_observation_zero_coordinates(self, reports_timezone):
         """Test conversion with zero coordinates (should return None)"""
         galooli_record = [
             "sensor1", "Vehicle1", "Org1",
@@ -102,8 +95,7 @@ class TestConvertToErObservation:
         result = convert_to_er_observation(galooli_record, reports_timezone)
         assert result is None
 
-    @pytest.mark.asyncio
-    async def test_convert_to_er_observation_empty_string_coordinates(self, reports_timezone):
+    def test_convert_to_er_observation_empty_string_coordinates(self, reports_timezone):
         """Test conversion with empty string coordinates (should return None)"""
         galooli_record = [
             "sensor1", "Vehicle1", "Org1", 
@@ -113,8 +105,7 @@ class TestConvertToErObservation:
         result = convert_to_er_observation(galooli_record, reports_timezone)
         assert result is None
 
-    @pytest.mark.asyncio
-    async def test_convert_to_er_observation_different_status_values(self, reports_timezone):
+    def test_convert_to_er_observation_different_status_values(self, reports_timezone):
         """Test conversion with different status values"""
         # Test with "Idle" status
         galooli_record_idle = [
@@ -138,8 +129,7 @@ class TestConvertToErObservation:
                 result_parked = convert_to_er_observation(galooli_record_parked, reports_timezone)
         assert result_parked is not None
 
-    @pytest.mark.asyncio
-    async def test_convert_to_er_observation_timezone_handling(self):
+    def test_convert_to_er_observation_timezone_handling(self):
         """Test timezone handling in conversion"""
         # Test with UTC timezone
         utc_timezone = pytz.FixedOffset(0)
@@ -154,8 +144,7 @@ class TestConvertToErObservation:
         assert result is not None
         assert "T10:00:00+00:00" in result['recorded_at']
 
-    @pytest.mark.asyncio
-    async def test_convert_to_er_observation_numeric_values(self, reports_timezone):
+    def test_convert_to_er_observation_numeric_values(self, reports_timezone):
         """Test conversion with various numeric values"""
         galooli_record = [
             "sensor1", "Vehicle1", "Org1",
