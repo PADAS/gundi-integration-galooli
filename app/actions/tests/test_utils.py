@@ -114,7 +114,7 @@ class TestConvertToErObservation:
         
         assert result is None
 
-    def test_convert_to_er_observation_different_status_values(self, reports_timezone):
+    def test_convert_to_er_observation_different_status_values_returns_valid_observations(self, reports_timezone):
         """Test conversion with different status values"""
         # Test with "Idle" status
         galooli_record_idle = [
