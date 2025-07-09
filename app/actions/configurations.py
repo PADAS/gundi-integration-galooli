@@ -40,7 +40,21 @@ class PullObservationsConfig(PullActionConfiguration):
         order=[
             "look_back_window_hours",
             "gmt_offset",
+            "subject_type",
+            "subject_groups",
         ],
+    )
+
+    subject_type: str = FieldWithUIOptions(
+        "vehicle",
+        title="Subject Type",
+        description="EarthRanger subject type to assign to new devices.",
+    )
+    
+    subject_groups: list[str] = FieldWithUIOptions(
+        ["Vehicles"],
+        title="Subject Groups",
+        description="EarthRanger Subject Groups to assign to new devices.",
     )
 
 def get_auth_config(integration):
