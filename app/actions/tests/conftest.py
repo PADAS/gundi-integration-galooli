@@ -47,7 +47,6 @@ def sample_er_observation():
     return {
         'manufacturer_id': 'sensor1',
         'subject_name': 'Vehicle1',
-        'subject_groups': ['Vehicles'],
         'subject_subtype': "security_vehicle",
         'recorded_at': '2023-01-01T10:00:00-05:00',
         'location': {

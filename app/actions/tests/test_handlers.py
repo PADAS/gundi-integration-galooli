@@ -185,7 +185,6 @@ class TestActionPullObservations:
         config.look_back_window_hours = 4
         config.gmt_offset = -5
         config.subject_type = "vehicle"
-        config.subject_groups = ["Vehicles"]
         return config
 
     @pytest.fixture
@@ -364,7 +363,6 @@ class TestHandlersIntegration:
         mock_action_config.look_back_window_hours = 4
         mock_action_config.gmt_offset = -5
         mock_action_config.subject_type = "vehicle"
-        mock_action_config.subject_groups = ["Vehicles"]
         
         mock_auth_config = MagicMock()
         mock_auth_config.username = "test_user"

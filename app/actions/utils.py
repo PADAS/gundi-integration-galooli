@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 state_manager = IntegrationStateManager()
 
 
-def convert_to_gundi_observation(galooli_record, *, reports_timezone:pytz.FixedOffset, subject_type:str="vehicle", subject_groups:list[str]=["Vehicles"]):
+def convert_to_gundi_observation(galooli_record, *, reports_timezone:pytz.FixedOffset, subject_type:str="vehicle"):
     try:
         # Unpack the galooli record into its components
         (sensor_id, subject_name, org_name, fixtime, status, latitude, longitude,
@@ -34,8 +34,7 @@ def convert_to_gundi_observation(galooli_record, *, reports_timezone:pytz.FixedO
                 'org_name': org_name,
                 'status': status,
                 'distance': distance,
-                'speed': speed,
-                'subject_groups': subject_groups
+                'speed': speed
             }
         }
         return obs

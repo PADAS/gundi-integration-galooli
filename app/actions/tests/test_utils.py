@@ -19,7 +19,7 @@ class TestConvertToGundiObservation:
             100, 50
         ]
 
-        result = convert_to_gundi_observation(galooli_record, reports_timezone=reports_timezone, subject_type="vehicle", subject_groups=["Vehicles"])
+        result = convert_to_gundi_observation(galooli_record, reports_timezone=reports_timezone, subject_type="vehicle")
 
         assert result is not None
         assert result['source'] == "sensor1"

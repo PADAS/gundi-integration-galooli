@@ -90,7 +90,7 @@ async def action_pull_observations(integration, action_config: PullObservationsC
             reports_timezone = pytz.FixedOffset(action_config.gmt_offset * 60)
             # Apply map and filter operations
             observations = seq.csv(csv_buffer) \
-                .map(lambda r: convert_to_gundi_observation(r, reports_timezone=reports_timezone, subject_type=action_config.subject_type, subject_groups=action_config.subject_groups)) \
+                .map(lambda r: convert_to_gundi_observation(r, reports_timezone=reports_timezone, subject_type=action_config.subject_type)) \
                 .filter(lambda x: x is not None) \
                 .to_list()
             
