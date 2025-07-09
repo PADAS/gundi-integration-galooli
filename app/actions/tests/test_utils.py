@@ -1,31 +1,30 @@
 import pytest
 import pytz
-from unittest.mock import patch
-from app.actions.utils import convert_to_er_observation
+from app.actions.utils import convert_to_gundi_observation
 
 
-class TestConvertToErObservation:
-    """Test cases for convert_to_er_observation function"""
+class TestConvertToGundiObservation:
+    """Test cases for convert_to_gundi_observation function"""
 
     @pytest.fixture
     def reports_timezone(self):
         """Mock timezone for testing"""
         return pytz.FixedOffset(-300)  # EST timezone
 
-    def test_convert_to_er_observation_success(self, reports_timezone):
-        """Test successful conversion of Galooli record to ER observation"""
+    def test_convert_to_gundi_observation_success(self, reports_timezone):
+        """Test successful conversion of Galooli record to Gundi observation"""
         galooli_record = [
             "sensor1", "Vehicle1", "Org1",  
             "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 
             100, 50
         ]
-        
-        result = convert_to_er_observation(galooli_record, reports_timezone)
-        
+
+        result = convert_to_gundi_observation(galooli_record, reports_timezone=reports_timezone, subject_type="vehicle")
+
         assert result is not None
         assert result['source'] == "sensor1"
         assert result['source_name'] == "Vehicle1"
-        assert result['subject_type'] == "security_vehicle"
+        assert result['subject_type'] == 'vehicle'
         assert result['type'] == "tracking-device"
         assert result['location']['lat'] == 40.7128
         assert result['location']['lon'] == -74.0060
@@ -35,17 +34,15 @@ class TestConvertToErObservation:
         assert result['additional']['distance'] == 100
         assert result['additional']['speed'] == 50
 
-    def test_convert_to_er_observation_stopped_vehicle(self, reports_timezone):
+    def test_convert_to_er_observation_stopped_vehicle_returns_valid_observation(self, reports_timezone):
         """Test conversion of stopped vehicle (should return None)"""
         galooli_record = [
             "sensor1", "Vehicle1", "Org1", 
             "2023-01-01 10:00:00", "Stopped", 40.7128, -74.0060, 
             100, 0
         ]
-        
-        result = convert_to_er_observation(galooli_record, reports_timezone)
-        
-        assert result is None
+        result = convert_to_gundi_observation(galooli_record, reports_timezone=reports_timezone)
+        assert result is not None
 
     def test_convert_to_er_observation_missing_coordinates(self, reports_timezone):
         """Test conversion with missing coordinates (should return None)"""
@@ -54,9 +51,7 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Moving", None, None, 
             100, 50
         ]
-        
-        result = convert_to_er_observation(galooli_record, reports_timezone)
-        
+        result = convert_to_gundi_observation(galooli_record, reports_timezone=reports_timezone)
         assert result is None
 
     def test_convert_to_er_observation_missing_time(self, reports_timezone):
@@ -66,9 +61,7 @@ class TestConvertToErObservation:
             None, "Moving", 40.7128, -74.0060, 
             100, 50
         ]
-        
-        result = convert_to_er_observation(galooli_record, reports_timezone)
-        
+        result = convert_to_gundi_observation(galooli_record, reports_timezone=reports_timezone)
         assert result is None
 
     def test_convert_to_er_observation_missing_sensor_id(self, reports_timezone):
@@ -78,9 +71,7 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 
             100, 50
         ]
-        
-        result = convert_to_er_observation(galooli_record, reports_timezone)
-        
+        result = convert_to_gundi_observation(galooli_record, reports_timezone=reports_timezone)
         assert result is None
 
     def test_convert_to_er_observation_invalid_record_length(self, reports_timezone):
@@ -88,7 +79,7 @@ class TestConvertToErObservation:
         galooli_record = ["sensor1", "Vehicle1", "Model1"]  # Too short
         
         with pytest.raises(ValueError):
-            convert_to_er_observation(galooli_record, reports_timezone)
+            convert_to_gundi_observation(galooli_record, reports_timezone=reports_timezone)
 
     def test_convert_to_er_observation_zero_coordinates(self, reports_timezone):
         """Test conversion with zero coordinates (should return None)"""
@@ -97,9 +88,7 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Moving", 0, 0, 
             100, 50
         ]
-        
-        result = convert_to_er_observation(galooli_record, reports_timezone)
-        
+        result = convert_to_gundi_observation(galooli_record, reports_timezone=reports_timezone)
         assert result is None
 
     def test_convert_to_er_observation_empty_string_coordinates(self, reports_timezone):
@@ -109,12 +98,10 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Moving", "", "", 
             100, 50
         ]
-        
-        result = convert_to_er_observation(galooli_record, reports_timezone)
-        
+        result = convert_to_gundi_observation(galooli_record, reports_timezone=reports_timezone)
         assert result is None
 
-    def test_convert_to_er_observation_different_status_values(self, reports_timezone):
+    def test_convert_to_er_observation_different_status_values_returns_valid_observations(self, reports_timezone):
         """Test conversion with different status values"""
         # Test with "Idle" status
         galooli_record_idle = [
@@ -122,9 +109,9 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Idle", 40.7128, -74.0060, 
             100, 0
         ]
-        
-        result_idle = convert_to_er_observation(galooli_record_idle, reports_timezone)
-        assert result_idle is None
+        result_idle = convert_to_gundi_observation(galooli_record_idle, reports_timezone=reports_timezone)
+
+        assert result_idle is not None
         
         # Test with "Parked" status
         galooli_record_parked = [
@@ -132,9 +119,8 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Parked", 40.7128, -74.0060, 
             100, 0
         ]
-        
-        result_parked = convert_to_er_observation(galooli_record_parked, reports_timezone)
-        assert result_parked is None
+        result_parked = convert_to_gundi_observation(galooli_record_parked, reports_timezone=reports_timezone)
+        assert result_parked is not None
 
     def test_convert_to_er_observation_timezone_handling(self):
         """Test timezone handling in conversion"""
@@ -145,9 +131,8 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 
             100, 50
         ]
-        
-        result = convert_to_er_observation(galooli_record, utc_timezone)
-        
+        result = convert_to_gundi_observation(galooli_record, reports_timezone=utc_timezone)
+
         assert result is not None
         assert "T10:00:00+00:00" in result['recorded_at']
 
@@ -158,9 +143,8 @@ class TestConvertToErObservation:
             "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 
             123.45, 67.89
         ]
-        
-        result = convert_to_er_observation(galooli_record, reports_timezone)
-        
+        result = convert_to_gundi_observation(galooli_record, reports_timezone=reports_timezone)
+
         assert result is not None
         assert result['additional']['distance'] == 123.45
         assert result['additional']['speed'] == 67.89

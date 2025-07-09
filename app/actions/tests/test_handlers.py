@@ -165,7 +165,7 @@ class TestActionPullObservations:
                 "ResultCode": 0,
                 "RejectReason": "",
                 "DataSet": [
-                    ["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Stopped", 40.7128, -74.0060, 100, 50]
+                    [None, "Vehicle1", "Org1", "2023-01-01 10:00:00", "Stopped", 40.7128, -74.0060, 100, 50]
                 ]
             }
         }
@@ -184,6 +184,7 @@ class TestActionPullObservations:
         config = MagicMock(spec=PullObservationsConfig)
         config.look_back_window_hours = 4
         config.gmt_offset = -5
+        config.subject_type = "vehicle"
         return config
 
     @pytest.fixture
@@ -199,8 +200,10 @@ class TestActionPullObservations:
         """Test successful pull observations"""
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
              patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_response), \
-             patch('app.actions.handlers.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.state_manager.set_state', return_value={}), \
+             patch('app.actions.handlers.state_manager.get_state', return_value={}), \
+             patch('app.actions.utils.state_manager.set_state', return_value={}), \
+             patch('app.actions.utils.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs1", "obs2"]) as mock_send:
             
             result = await action_pull_observations(mock_integration, mock_action_config)
@@ -241,6 +244,8 @@ class TestActionPullObservations:
              patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_response) as mock_get_obs, \
              patch('app.actions.handlers.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.state_manager.set_state', return_value={}), \
+             patch('app.actions.utils.state_manager.set_state', return_value={}), \
+             patch('app.actions.utils.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs1", "obs2"]) as mock_send:
             
             result = await action_pull_observations(mock_integration, mock_action_config)
@@ -302,6 +307,8 @@ class TestActionPullObservations:
              patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_response), \
              patch('app.actions.handlers.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.state_manager.set_state', return_value={}), \
+             patch('app.actions.utils.state_manager.set_state', return_value={}), \
+             patch('app.actions.utils.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs"] * 200) as mock_send:
             
             result = await action_pull_observations(mock_integration, mock_action_config)
@@ -354,6 +361,7 @@ class TestHandlersIntegration:
         mock_action_config = MagicMock(spec=PullObservationsConfig)
         mock_action_config.look_back_window_hours = 4
         mock_action_config.gmt_offset = -5
+        mock_action_config.subject_type = "vehicle"
         
         mock_auth_config = MagicMock()
         mock_auth_config.username = "test_user"
@@ -363,6 +371,8 @@ class TestHandlersIntegration:
              patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_response), \
              patch('app.actions.handlers.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.state_manager.set_state', return_value={}), \
+             patch('app.actions.utils.state_manager.set_state', return_value={}), \
+             patch('app.actions.utils.state_manager.get_state', return_value={}), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs1"]):
             
             await action_pull_observations(mock_integration, mock_action_config)
