@@ -165,7 +165,7 @@ class TestActionPullObservations:
                 "ResultCode": 0,
                 "RejectReason": "",
                 "DataSet": [
-                    ["sensor1", "Vehicle1", "Org1", "2023-01-01 10:00:00", "Stopped", 40.7128, -74.0060, 100, 50]
+                    [None, "Vehicle1", "Org1", "2023-01-01 10:00:00", "Stopped", 40.7128, -74.0060, 100, 50]
                 ]
             }
         }
@@ -222,7 +222,6 @@ class TestActionPullObservations:
             
             assert result == {"observations_extracted": 0}
 
-    @pytest.mark.skip("Approach changed, so no bad observations are returned")
     @pytest.mark.asyncio
     async def test_action_pull_observations_no_valid_observations(self, mock_integration, mock_action_config, mock_auth_config, mock_dataset_bad_observation_response):
         """Test pull observations with dataset but no valid observations after processing"""
