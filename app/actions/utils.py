@@ -71,6 +71,8 @@ async def filter_observations_by_device_status(integration_id:str, observations:
                 # If the recorded_at has changed, then we want to send this observation.
                 if device_state.get('recorded_at') != recorded_at:
                     filtered_observations.append(obs)
+            else:
+                filtered_observations.append(obs) # first time for this device+off status
 
             # Set TTL on "Off" status 
             await state_manager.set_state(integration_id=integration_id, action_id=cache_key, 
