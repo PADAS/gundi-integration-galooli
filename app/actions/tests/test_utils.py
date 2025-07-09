@@ -41,9 +41,7 @@ class TestConvertToGundiObservation:
             "2023-01-01 10:00:00", "Stopped", 40.7128, -74.0060, 
             100, 0
         ]
-
         result = convert_to_gundi_observation(galooli_record, reports_timezone=reports_timezone)
-
         assert result is not None
 
     def test_convert_to_er_observation_missing_coordinates(self, reports_timezone):
@@ -103,7 +101,7 @@ class TestConvertToGundiObservation:
         result = convert_to_gundi_observation(galooli_record, reports_timezone=reports_timezone)
         assert result is None
 
-    def test_convert_to_er_observation_different_status_values(self, reports_timezone):
+    def test_convert_to_er_observation_different_status_values_returns_valid_observations(self, reports_timezone):
         """Test conversion with different status values"""
         # Test with "Idle" status
         galooli_record_idle = [
@@ -111,19 +109,17 @@ class TestConvertToGundiObservation:
             "2023-01-01 10:00:00", "Idle", 40.7128, -74.0060, 
             100, 0
         ]
-
         result_idle = convert_to_gundi_observation(galooli_record_idle, reports_timezone=reports_timezone)
 
         assert result_idle is not None
+        
         # Test with "Parked" status
         galooli_record_parked = [
             "sensor1", "Vehicle1", "Org1",
             "2023-01-01 10:00:00", "Parked", 40.7128, -74.0060, 
             100, 0
         ]
-
         result_parked = convert_to_gundi_observation(galooli_record_parked, reports_timezone=reports_timezone)
-
         assert result_parked is not None
 
     def test_convert_to_er_observation_timezone_handling(self):
@@ -135,7 +131,6 @@ class TestConvertToGundiObservation:
             "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 
             100, 50
         ]
-
         result = convert_to_gundi_observation(galooli_record, reports_timezone=utc_timezone)
 
         assert result is not None
@@ -148,7 +143,6 @@ class TestConvertToGundiObservation:
             "2023-01-01 10:00:00", "Moving", 40.7128, -74.0060, 
             123.45, 67.89
         ]
-
         result = convert_to_gundi_observation(galooli_record, reports_timezone=reports_timezone)
 
         assert result is not None
