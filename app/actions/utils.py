@@ -1,5 +1,6 @@
 import logging
 import dateparser
+import pytz
 
 from app.services.state import IntegrationStateManager
 
@@ -7,21 +8,21 @@ logger = logging.getLogger(__name__)
 state_manager = IntegrationStateManager()
 
 
-def convert_to_er_observation(galooli_record, reports_timezone):
+def convert_to_gundi_observation(galooli_record, *, reports_timezone:pytz.FixedOffset, subject_type:str="vehicle"):
     try:
         # Unpack the galooli record into its components
-        (sensor_id, subject_name, org_name, time, status, latitude, longitude,
+        (sensor_id, subject_name, org_name, fixtime, status, latitude, longitude,
          distance, speed) = galooli_record
     except ValueError as e:
         logger.exception(f"Failed to unpack Galooli record: {galooli_record}")
         raise e
 
-    if latitude and longitude and time and sensor_id:
-        localized_gps_time = reports_timezone.localize(dateparser.parse(time))
+    if latitude and longitude and fixtime and sensor_id:
+        localized_gps_time = reports_timezone.localize(dateparser.parse(fixtime))
         obs = {
             'source': sensor_id,
             'source_name': subject_name,
-            'subject_type': "security_vehicle",
+            'subject_type': subject_type,
             'type': 'tracking-device',
             'recorded_at': localized_gps_time.isoformat(),
             'location': {
@@ -33,55 +34,51 @@ def convert_to_er_observation(galooli_record, reports_timezone):
                 'org_name': org_name,
                 'status': status,
                 'distance': distance,
-                'speed': speed,
-                'subject_groups': ['Vehicles', ]
+                'speed': speed
             }
         }
         return obs
     else:
-        logger.error(f'Got bad data from Galooli: mfg_id {sensor_id}, time {time}, lat {latitude} long {longitude}')
-        logger.error(f'{galooli_record}')
-        return None
+        logger.error(f'Got bad data from Galooli: mfg_id {sensor_id}, time {fixtime}, lat {latitude} long {longitude}, record: ({galooli_record})')
 
-async def filter_observations_by_device_status(integration_id, observations):
+
+async def filter_observations_by_device_status(integration_id:str, observations:list[dict]):
     """
     Filters observations based on the device status.
     """
-    async def save_state_and_append_observation(obs, sensor_id, status):
-        state = {"status": status}
-        await state_manager.set_state(
-            integration_id=integration_id,
-            action_id="pull_observations",
-            source_id=sensor_id,
-            state=state
-        )
-        filtered_observations.append(obs)
-
     if not observations:
         return []
 
     filtered_observations = []
 
     for obs in observations:
-        sensor_id = obs['source']
-        subject_name = obs['source_name']
-        time = obs['recorded_at']
-        status = obs['additional'].get('status')
 
-        device_state = await state_manager.get_state(
-            integration_id=str(integration_id),
-            action_id="pull_observations",
-            source_id=sensor_id
-        )
+        # If status is "Off", we check whether we've seen the record within the last 10 minutes.
+        status = obs['additional'].get('status', '').lower()
 
-        if device_state:
-            # If the device state exists, we check if the status has changed
-            if device_state.get('status') == status:
-                logger.info(f'Ignoring observation for {sensor_id} {subject_name} recorded at {time} status: {status} (status has not changed)')
+        if status == "off":
+
+            recorded_at = obs['recorded_at']
+            cache_key = f"quiet_period:{status}"
+
+            sensor_id = obs['source']
+            if device_state := await state_manager.get_state(
+                integration_id=integration_id,
+                action_id=cache_key,
+                source_id=sensor_id
+            ):
+                
+                # If the recorded_at has changed, then we want to send this observation.
+                if device_state.get('recorded_at') != recorded_at:
+                    filtered_observations.append(obs)
             else:
-                await save_state_and_append_observation(obs, sensor_id, status)
+                filtered_observations.append(obs) # first time for this device+off status
+
+            # Set TTL on "Off" status 
+            await state_manager.set_state(integration_id=integration_id, action_id=cache_key, 
+                                        source_id=sensor_id, state={"recorded_at": recorded_at}, ex=600)
+
         else:
-            # No device_state (new sensor), so we create a new observation
-            await save_state_and_append_observation(obs, sensor_id, status)
+            filtered_observations.append(obs)
 
     return filtered_observations
