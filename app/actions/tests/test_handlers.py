@@ -64,7 +64,7 @@ class TestActionAuth:
         """Test authentication with invalid credentials"""
         with patch('app.actions.handlers.client.get_observations') as mock_get_obs:
             mock_get_obs.side_effect = GalooliInvalidUserCredentialsException(
-                Exception(), "Invalid credentials", 1000
+                "Invalid credentials", 1000
             )
             
             result = await action_auth(mock_integration, mock_action_config)
@@ -80,7 +80,7 @@ class TestActionAuth:
         """Test authentication with general error"""
         with patch('app.actions.handlers.client.get_observations') as mock_get_obs:
             mock_get_obs.side_effect = GalooliGeneralErrorException(
-                Exception(), "General error", -1
+                "General error", -1
             )
             
             result = await action_auth(mock_integration, mock_action_config)
@@ -96,7 +96,7 @@ class TestActionAuth:
         """Test authentication with too many requests error"""
         with patch('app.actions.handlers.client.get_observations') as mock_get_obs:
             mock_get_obs.side_effect = GalooliTooManyRequestsException(
-                Exception(), "Too many requests", 1101
+                "Too many requests", 1101
             )
             
             result = await action_auth(mock_integration, mock_action_config)
@@ -204,6 +204,7 @@ class TestActionPullObservations:
              patch('app.actions.handlers.state_manager.get_state', return_value={}), \
              patch('app.actions.utils.state_manager.set_state', return_value={}), \
              patch('app.actions.utils.state_manager.get_state', return_value={}), \
+             patch('app.actions.handlers.state_manager.is_quiet_period', return_value={}), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs1", "obs2"]) as mock_send:
             
             result = await action_pull_observations(mock_integration, mock_action_config)
@@ -217,6 +218,7 @@ class TestActionPullObservations:
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
              patch('app.actions.handlers.client.get_observations', return_value=mock_empty_dataset_response), \
              patch('app.actions.handlers.state_manager.set_state', return_value={}), \
+             patch('app.actions.handlers.state_manager.is_quiet_period', return_value={}), \
              patch('app.actions.handlers.state_manager.get_state', return_value={}):
             
             result = await action_pull_observations(mock_integration, mock_action_config)
@@ -229,6 +231,7 @@ class TestActionPullObservations:
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
              patch('app.actions.handlers.client.get_observations', return_value=mock_dataset_bad_observation_response), \
              patch('app.actions.handlers.state_manager.set_state', return_value={}), \
+             patch('app.actions.handlers.state_manager.is_quiet_period', return_value={}), \
              patch('app.actions.handlers.state_manager.get_state', return_value={}):
             
             result = await action_pull_observations(mock_integration, mock_action_config)
@@ -246,6 +249,7 @@ class TestActionPullObservations:
              patch('app.actions.handlers.state_manager.set_state', return_value={}), \
              patch('app.actions.utils.state_manager.set_state', return_value={}), \
              patch('app.actions.utils.state_manager.get_state', return_value={}), \
+             patch('app.actions.handlers.state_manager.is_quiet_period', return_value={}), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs1", "obs2"]) as mock_send:
             
             result = await action_pull_observations(mock_integration, mock_action_config)
@@ -253,6 +257,7 @@ class TestActionPullObservations:
             assert result == {"observations_extracted": 2}
             mock_get_obs.assert_called_once_with(
                 "https://custom.galooli.com/api",
+                integration_id="test-integration-id",
                 username="test_user",
                 password="test_password",
                 start=mock_get_obs.call_args[1]["start"]
@@ -264,9 +269,10 @@ class TestActionPullObservations:
         """Test pull observations with client exception"""
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
              patch('app.actions.handlers.state_manager.get_state', return_value={}), \
+             patch('app.actions.handlers.state_manager.is_quiet_period', return_value={}), \
              patch('app.actions.handlers.client.get_observations') as mock_get_obs:
             mock_get_obs.side_effect = GalooliInvalidUserCredentialsException(
-                Exception(), "Invalid credentials", 1000
+                "Invalid credentials", 1000
             )
             
             with pytest.raises(GalooliInvalidUserCredentialsException):
@@ -277,6 +283,7 @@ class TestActionPullObservations:
         """Test pull observations with HTTP error"""
         with patch('app.actions.handlers.get_auth_config', return_value=mock_auth_config), \
              patch('app.actions.handlers.state_manager.get_state', return_value={}), \
+             patch('app.actions.handlers.state_manager.is_quiet_period', return_value={}), \
              patch('app.actions.handlers.client.get_observations') as mock_get_obs:
             mock_response = MagicMock()
             mock_response.status_code = 500
@@ -286,6 +293,16 @@ class TestActionPullObservations:
             
             with pytest.raises(httpx.HTTPStatusError):
                 await action_pull_observations(mock_integration, mock_action_config)
+
+    @pytest.mark.asyncio
+    async def test_action_pull_observations_quiet_period_active(self, mock_integration, mock_action_config):
+        """When quiet period is active, ensure log_action_activity is called and proper message is returned"""
+        with patch('app.actions.handlers.state_manager.is_quiet_period', return_value=True), \
+                patch('app.actions.handlers.log_action_activity', new_callable=AsyncMock) as mock_log:
+            result = await action_pull_observations(mock_integration, mock_action_config)
+
+            mock_log.assert_awaited_once()
+            assert result == {"message": "Quiet period is active."}
 
     @pytest.mark.asyncio
     async def test_action_pull_observations_batch_processing(self, mock_integration, mock_action_config, mock_auth_config):
@@ -309,6 +326,7 @@ class TestActionPullObservations:
              patch('app.actions.handlers.state_manager.set_state', return_value={}), \
              patch('app.actions.utils.state_manager.set_state', return_value={}), \
              patch('app.actions.utils.state_manager.get_state', return_value={}), \
+             patch('app.actions.handlers.state_manager.is_quiet_period', return_value={}), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs"] * 200) as mock_send:
             
             result = await action_pull_observations(mock_integration, mock_action_config)
@@ -373,6 +391,7 @@ class TestHandlersIntegration:
              patch('app.actions.handlers.state_manager.set_state', return_value={}), \
              patch('app.actions.utils.state_manager.set_state', return_value={}), \
              patch('app.actions.utils.state_manager.get_state', return_value={}), \
+            patch('app.actions.handlers.state_manager.is_quiet_period', return_value={}), \
              patch('app.actions.handlers.send_observations_to_gundi', return_value=["obs1"]):
             
             await action_pull_observations(mock_integration, mock_action_config)

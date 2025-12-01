@@ -19,6 +19,7 @@ class TestGetObservations:
         """Mock request parameters for get_observations"""
         return {
             'url': "https://test.galooli.com/api",
+            'integration_id': "test_integration",
             'username': "test_user",
             'password': "test_password",
             'start': datetime(2024, 6, 27, 12, 0, 0, tzinfo=timezone.utc)
@@ -74,7 +75,7 @@ class TestGetObservations:
             assert call_args[1]['params']['password'] == "test_password"
 
     @pytest.mark.asyncio
-    async def test_get_observations_invalid_credentials(self, mock_request_params):
+    async def test_get_observations_invalid_credentials_sets_quiet_period(self, mock_request_params):
         """Test observation retrieval with invalid credentials"""
         mock_response = MagicMock()
         mock_response.is_error = False
@@ -84,8 +85,11 @@ class TestGetObservations:
                 'ResultDescription': 'Invalid credentials'
             }
         }
-        
-        with patch('httpx.AsyncClient') as mock_client_class:
+
+        with (
+            patch("app.actions.client.httpx.AsyncClient") as mock_client_class,
+            patch("app.actions.client.state_manager.set_quiet_period", new_callable=AsyncMock) as mock_set_quiet
+        ):
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client.get.return_value = mock_response
@@ -95,6 +99,12 @@ class TestGetObservations:
             
             assert exc_info.value.code == 1000
             assert "Invalid credentials" in str(exc_info.value)
+
+            mock_set_quiet.assert_awaited_once_with(
+                integration_id="test_integration",
+                action_id="pull_observations",
+                quiet_period=timedelta(minutes=15),
+            )
 
     @pytest.mark.asyncio
     async def test_get_observations_too_many_requests(self, mock_request_params):
