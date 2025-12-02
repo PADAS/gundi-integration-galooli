@@ -11,6 +11,7 @@ state_manager = IntegrationStateManager()
 logger = logging.getLogger(__name__)
 
 REQUESTED_PROPERTIES = 'unit_id,unit_name,organization_name,real_time_GPS_Time,real_time_status,real_time_Latitude,real_time_Longitude,real_time_Distance,real_time_Speed'
+QUIET_PERIOD_MINS = 15
 
 
 
@@ -61,11 +62,11 @@ async def get_observations(url, *, integration_id: str, username: str, password:
                     if result_code == 1101:
                         raise GalooliTooManyRequestsException(message=result_description)
                     elif result_code == 1000:
-                        logger.error(f"Galooli returned '{result_code}:{result_description}' error for user {username}. Setting 15 mins of quiet period...")
+                        logger.warning(f"Galooli returned '{result_code}:{result_description}' error for user {username}. Setting {QUIET_PERIOD_MINS} mins of quiet period...")
                         await state_manager.set_quiet_period(
                             integration_id=integration_id,
                             action_id="pull_observations",
-                            quiet_period=timedelta(minutes=15)
+                            quiet_period=timedelta(minutes=QUIET_PERIOD_MINS)
                         )
                         raise GalooliInvalidUserCredentialsException(message=result_description)
                     raise GalooliGeneralErrorException(message=f"General error occurred. Result code: {result_code}")
@@ -77,6 +78,12 @@ async def get_observations(url, *, integration_id: str, username: str, password:
 
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 403:
+                logger.warning(f"Galooli returned HTTP 403 error for user {username}. Setting {QUIET_PERIOD_MINS} mins of quiet period...")
+                await state_manager.set_quiet_period(
+                    integration_id=integration_id,
+                    action_id="pull_observations",
+                    quiet_period=timedelta(minutes=QUIET_PERIOD_MINS)
+                )
                 raise GalooliInvalidUserCredentialsException("Unauthorized access", code=403)
             if e.response.status_code == 404:
                 raise GalooliGeneralErrorException("Not found", code=404)
