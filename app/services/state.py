@@ -48,7 +48,7 @@ class IntegrationStateManager:
                 val = await self.db_client.exists(
                     f"integration_state.{integration_id}.{action_id}.quiet_period",
                 )
-                return val
+        return val
 
     def __str__(self):
         return f"IntegrationStateManager(host={self.db_client.host}, port={self.db_client.port}, db={self.db_client.db})"
