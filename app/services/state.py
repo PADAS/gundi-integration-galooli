@@ -36,7 +36,7 @@ class IntegrationStateManager:
                     f"integration_state.{integration_id}.{action_id}.{source_id}"
                 )
 
-    async def set_quiet_period(self, integration_id: str, action_id:str, quiet_period: int):
+    async def set_quiet_period(self, integration_id: str, action_id: str, quiet_period: int):
         for attempt in stamina.retry_context(on=redis.RedisError, attempts=5, wait_initial=1.0, wait_max=30, wait_jitter=3.0):
             with attempt:
                 await self.db_client.setex(
