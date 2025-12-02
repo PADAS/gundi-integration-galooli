@@ -153,12 +153,15 @@ class TestGetObservations:
             assert "General error occurred" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_get_observations_http_error_403(self, mock_request_params):
+    async def test_get_observations_http_error_403_sets_quiet_period(self, mock_request_params):
         """Test observation retrieval with HTTP 403 error"""
         mock_response = MagicMock()
         mock_response.status_code = 403
-        
-        with patch('httpx.AsyncClient') as mock_client_class:
+
+        with (
+            patch("app.actions.client.httpx.AsyncClient") as mock_client_class,
+            patch("app.actions.client.state_manager.set_quiet_period", new_callable=AsyncMock) as mock_set_quiet
+        ):
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client.get.side_effect = httpx.HTTPStatusError(
@@ -169,6 +172,12 @@ class TestGetObservations:
                 await get_observations(**mock_request_params)
             
             assert exc_info.value.code == 403
+
+            mock_set_quiet.assert_awaited_once_with(
+                integration_id="test_integration",
+                action_id="pull_observations",
+                quiet_period=timedelta(minutes=15),
+            )
 
     @pytest.mark.asyncio
     async def test_get_observations_http_error_404(self, mock_request_params):
