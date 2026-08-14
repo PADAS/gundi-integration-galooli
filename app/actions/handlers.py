@@ -1,6 +1,9 @@
 import httpx
 import logging
 import csv
+
+from gundi_core.schemas.v2 import LogLevel
+
 import app.actions.client as client
 from dateparser import parse as dp
 from functional import seq
@@ -10,7 +13,7 @@ import pytz
 from io import StringIO
 from app.actions.configurations import AuthenticateConfig, PullObservationsConfig, get_auth_config
 from app.actions.utils import convert_to_gundi_observation, filter_observations_by_device_status
-from app.services.activity_logger import activity_logger
+from app.services.activity_logger import activity_logger, log_action_activity
 from app.services.action_scheduler import crontab_schedule
 from app.services.gundi import send_observations_to_gundi
 from app.services.state import IntegrationStateManager
@@ -49,6 +52,18 @@ async def action_auth(integration, action_config: AuthenticateConfig):
 @activity_logger()
 async def action_pull_observations(integration, action_config: PullObservationsConfig):
     logger.info(f"Executing 'pull_observations' action with integration ID {integration.id} and action_config {action_config}...")
+    result = {}
+
+    if await state_manager.is_quiet_period(str(integration.id), "pull_observations"):
+        await log_action_activity(
+            integration_id=integration.id,
+            action_id="pull_observations",
+            level=LogLevel.WARNING,
+            title="Quiet period active - skipping observation pull.",
+            data={"message": "A quiet period is currently active due to credentials issues."}
+        )
+        result["message"] = "Quiet period is active."
+        return result
 
     url = integration.base_url or GALOOLI_BASE_URL
     auth_config = get_auth_config(integration)
@@ -72,6 +87,7 @@ async def action_pull_observations(integration, action_config: PullObservationsC
         
         if get_observations_response := await client.get_observations(
             url,
+            integration_id=str(integration.id),
             username=auth_config.username,
             password=auth_config.password.get_secret_value(),
             start=start
@@ -103,24 +119,26 @@ async def action_pull_observations(integration, action_config: PullObservationsC
                     response = await send_observations_to_gundi(observations=batch, integration_id=integration.id)
                     observations_extracted += len(response)
 
+                # Save latest execution time to state
+                latest_time = get_observations_response["MaxGmtUpdateTime"]
+                state = {"last_updated_time": latest_time}
+
+                await state_manager.set_state(
+                    integration_id=integration.id,
+                    action_id="pull_observations",
+                    state=state
+                )
+                logger.info(f"State updated for integration {integration.id} with last_updated_time: {latest_time}")
+
             else:
                 logger.warning(f"No valid observations found for Username: {auth_config.username}")
 
-            # Save latest execution time to state
-            latest_time = get_observations_response["MaxGmtUpdateTime"]
-            state = {"last_updated_time": latest_time}
-
-            await state_manager.set_state(
-                integration_id=integration.id,
-                action_id="pull_observations",
-                state=state
-            )
-            logger.info(f"State updated for integration {integration.id} with last_updated_time: {latest_time}")
-
-            return {"observations_extracted": observations_extracted}
+            result["observations_extracted"] = observations_extracted
+            return result
         else:
             logger.warning(f"No observations found for Username: {auth_config.username}")
-            return {"observations_extracted": 0}
+            result["observations_extracted"] = 0
+            return result
     except (client.GalooliInvalidUserCredentialsException, client.GalooliGeneralErrorException, client.GalooliTooManyRequestsException) as e:
         logger.error(f"Galooli API returned error for integration {integration.id}. Exception: {e}")
         raise
